@@ -43,7 +43,7 @@ lazy val plugin = project
   .settings(
     sources in (Compile, doc) := Seq(),
     name := "sbt-play-ebean",
-    organization := "com.typesafe.sbt",
+    organization := "fr.lcdp",
     libraryDependencies ++= sbtPlayEbeanDeps,
 
     libraryDependencies ++= Seq(
