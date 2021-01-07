@@ -19,6 +19,20 @@ lazy val root = project
     name := "play-ebean-root",
     releaseCrossBuild := false
   )
+  .settings(
+    // Publishing
+    publishMavenStyle := true,
+
+    publishTo := {
+      val jfrog = "https://lcdp.jfrog.io/artifactory/"
+      if (isSnapshot.value)
+        Some("Artifactory Realm" at jfrog + "sbt-dev")
+      else
+        Some("Artifactory Realm"  at jfrog + "sbt-release")
+    },
+
+    credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
+  )
 
 lazy val core = project
   .in(file("play-ebean"))
@@ -35,6 +49,20 @@ lazy val core = project
       "play/db/ebean/**"
     ),
     jacocoReportSettings := JacocoReportSettings("Jacoco Coverage Report", None, JacocoThresholds(), Seq(JacocoReportFormats.XML), "utf-8")
+  )
+  .settings(
+    // Publishing
+    publishMavenStyle := true,
+
+    publishTo := {
+      val jfrog = "https://lcdp.jfrog.io/artifactory/"
+      if (isSnapshot.value)
+        Some("Artifactory Realm" at jfrog + "sbt-dev")
+      else
+        Some("Artifactory Realm"  at jfrog + "sbt-release")
+    },
+
+    credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
   )
 
 lazy val plugin = project
@@ -57,14 +85,32 @@ lazy val plugin = project
       val () = publishLocal.value
     }
   )
+  .settings(
+    // Publishing
+    publishMavenStyle := true,
+
+    publishTo := {
+      val jfrog = "https://lcdp.jfrog.io/artifactory/"
+      if (isSnapshot.value)
+        Some("Artifactory Realm" at jfrog + "sbt-dev")
+      else
+        Some("Artifactory Realm"  at jfrog + "sbt-release")
+    },
+
+    credentials += Credentials(Path.userHome / ".sbt" / ".credentials"),
+
+    bintrayRelease := (),
+    bintrayEnsureBintrayPackageExists := (),
+    bintrayEnsureLicenses := ()
+  )
 
 playBuildRepoName in ThisBuild := "play-ebean"
 // playBuildExtraTests := {
 //  (scripted in plugin).toTask("").value
 // }
-playBuildExtraPublish := {
-  (PgpKeys.publishSigned in plugin).value
-}
+//playBuildExtraPublish := {
+//  (PgpKeys.publishSigned in plugin).value
+//}
 
 // Dependencies
 lazy val ebeanDeps = Seq(
