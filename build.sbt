@@ -35,7 +35,7 @@ lazy val plugin = project
   .in(file("sbt-play-ebean"))
   .enablePlugins(SbtPlugin)
   .settings(
-    name := "play-ebean",
+    name := "sbt-play-ebean",
     organization := "fr.lcdp",
     Dependencies.plugin,
     addSbtPlugin("com.typesafe.play" % "sbt-plugin" % Versions.play),

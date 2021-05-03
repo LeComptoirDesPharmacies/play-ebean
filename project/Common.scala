@@ -17,7 +17,7 @@ object Common extends AutoPlugin {
   override def globalSettings =
     Seq(
       // organization
-      organization := "fr.lcdp",
+      organization := "com.typesafe.play",
       organizationName := "Lightbend Inc.",
       organizationHomepage := Some(url("https://www.lightbend.com/")),
       // scala settings
