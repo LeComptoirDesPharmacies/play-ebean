@@ -1,148 +1,62 @@
-import sbt.inc.Analysis
-import interplay.ScalaVersions.scala212
+import Dependencies.ScalaVersions.{scala212, scala213}
+import Dependencies.Versions
+import sbt.Append.appendSeq
+import xsbti.compile.CompileAnalysis
+import Publish._
 
-val scala213 = "2.13.0"
-val Versions = new {
-  val play: String = playVersion(sys.props.getOrElse("play.version", "2.8.1"))
-  val playEnhancer = "1.2.2"
-  val ebean = "11.45.1"
-  val ebeanAgent = "11.45.1"
-  val typesafeConfig = "1.3.4"
-}
+
 
 lazy val root = project
   .in(file("."))
-  .enablePlugins(PlayRootProject, CrossPerProjectPlugin)
   .aggregate(core, plugin)
   .settings(
-    sources in (Compile, doc) := Seq(),
     name := "play-ebean-root",
-    releaseCrossBuild := false
-  )
-  .settings(
-    // Publishing
-    publishMavenStyle := true,
-
-    publishTo := {
-      val jfrog = "https://lcdp.jfrog.io/artifactory/"
-      if (isSnapshot.value)
-        Some("Artifactory Realm" at jfrog + "sbt-dev")
-      else
-        Some("Artifactory Realm"  at jfrog + "sbt-release")
-    },
-
-    credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
+    crossScalaVersions := Nil,
+    publish / skip := true
   )
 
 lazy val core = project
   .in(file("play-ebean"))
-  .enablePlugins(Playdoc, PlayLibrary, JacocoPlugin)
   .settings(
-    sources in (Compile, doc) := Seq(),
     name := "play-ebean",
     crossScalaVersions := Seq(scala212, scala213),
-    libraryDependencies ++= playEbeanDeps,
+    Dependencies.ebean,
     compile in Compile := enhanceEbeanClasses(
       (dependencyClasspath in Compile).value,
       (compile in Compile).value,
       (classDirectory in Compile).value,
       "play/db/ebean/**"
     ),
-    jacocoReportSettings := JacocoReportSettings("Jacoco Coverage Report", None, JacocoThresholds(), Seq(JacocoReportFormats.XML), "utf-8")
-  )
-  .settings(
-    // Publishing
-    publishMavenStyle := true,
-
-    publishTo := {
-      val jfrog = "https://lcdp.jfrog.io/artifactory/"
-      if (isSnapshot.value)
-        Some("Artifactory Realm" at jfrog + "sbt-dev")
-      else
-        Some("Artifactory Realm"  at jfrog + "sbt-release")
-    },
-
-    credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
+    jacocoReportSettings := JacocoReportSettings("Jacoco Coverage Report", None, JacocoThresholds(), Seq(JacocoReportFormats.XML), "utf-8"),
+    publishJfrog
   )
 
 lazy val plugin = project
   .in(file("sbt-play-ebean"))
-  .enablePlugins(PlaySbtPlugin)
+  .enablePlugins(SbtPlugin)
   .settings(
-    sources in (Compile, doc) := Seq(),
-    name := "sbt-play-ebean",
+    name := "play-ebean",
     organization := "fr.lcdp",
-    libraryDependencies ++= sbtPlayEbeanDeps,
-
-    libraryDependencies ++= Seq(
-      sbtPluginDep("com.typesafe.sbt" % "sbt-play-enhancer" % Versions.playEnhancer, (sbtVersion in pluginCrossBuild).value, scalaVersion.value),
-      sbtPluginDep("com.typesafe.play" % "sbt-plugin" % Versions.play, (sbtVersion in pluginCrossBuild).value, scalaVersion.value)
-    ),
-
+    Dependencies.plugin,
+    addSbtPlugin("com.typesafe.play" % "sbt-plugin" % Versions.play),
+    crossScalaVersions := Seq(scala212),
     resourceGenerators in Compile += generateVersionFile.taskValue,
-    scriptedLaunchOpts ++= Seq("-Dplay-ebean.version=" + version.value),
-    scriptedDependencies := {
-      val () = publishLocal.value
-    }
-  )
-  .settings(
-    // Publishing
-    publishMavenStyle := true,
-
-    publishTo := {
-      val jfrog = "https://lcdp.jfrog.io/artifactory/"
-      if (isSnapshot.value)
-        Some("Artifactory Realm" at jfrog + "sbt-dev")
-      else
-        Some("Artifactory Realm"  at jfrog + "sbt-release")
-    },
-
-    credentials += Credentials(Path.userHome / ".sbt" / ".credentials"),
-
-    bintrayRelease := (),
-    bintrayEnsureBintrayPackageExists := (),
-    bintrayEnsureLicenses := ()
+    scriptedLaunchOpts ++= Seq(
+      s"-Dscala.version=${scalaVersion.value}",
+      s"-Dscala.crossVersions=${(crossScalaVersions in core).value.mkString(",")}",
+      s"-Dproject.version=${version.value}",
+    ),
+    scriptedBufferLog := false,
+    scriptedDependencies := (()),
+    publishJfrog
   )
 
-playBuildRepoName in ThisBuild := "play-ebean"
-// playBuildExtraTests := {
-//  (scripted in plugin).toTask("").value
-// }
-//playBuildExtraPublish := {
-//  (PgpKeys.publishSigned in plugin).value
-//}
-
-// Dependencies
-lazy val ebeanDeps = Seq(
-  "io.ebean" % "ebean" % Versions.ebean,
-  "io.ebean" % "ebean-agent" % Versions.ebeanAgent
-)
-
-lazy val reflectionDeps = Seq(
-  ("org.reflections" % "reflections" % "0.9.11")
-    .exclude("com.google.code.findbugs", "annotations")
-    .classifier("")
-)
-
-lazy val playEbeanDeps = ebeanDeps ++ Seq(
-  "com.typesafe.play" %% "play-java-jdbc" % Versions.play,
-  "com.typesafe.play" %% "play-jdbc-evolutions" % Versions.play,
-  "com.typesafe.play" %% "play-guice" % Versions.play % Test,
-  "com.typesafe.play" %% "filters-helpers" % Versions.play % Test,
-  "com.typesafe.play" %% "play-test" % Versions.play % Test
-) ++ reflectionDeps
-
-lazy val sbtPlayEbeanDeps = ebeanDeps ++ Seq(
-  "com.typesafe" % "config" % Versions.typesafeConfig
-)
-
-// sbt deps
 def sbtPluginDep(moduleId: ModuleID, sbtVersion: String, scalaVersion: String) = {
   Defaults.sbtPluginExtra(moduleId, CrossVersion.binarySbtVersion(sbtVersion), CrossVersion.binaryScalaVersion(scalaVersion))
 }
 
 // Ebean enhancement
-def enhanceEbeanClasses(classpath: Classpath, analysis: Analysis, classDirectory: File, pkg: String): Analysis = {
+def enhanceEbeanClasses(classpath: Classpath, analysis: CompileAnalysis, classDirectory: File, pkg: String): CompileAnalysis = {
   // Ebean (really hacky sorry)
   val cp = classpath.map(_.data.toURI.toURL).toArray :+ classDirectory.toURI.toURL
   val cl = new java.net.URLClassLoader(cp)
@@ -155,7 +69,6 @@ def enhanceEbeanClasses(classpath: Classpath, analysis: Analysis, classDirectory
 }
 
 // Version file
-
 def generateVersionFile = Def.task {
   val version = (Keys.version in core).value
   val file = (resourceManaged in Compile).value / "play-ebean.version.properties"

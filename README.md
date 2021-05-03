@@ -11,6 +11,7 @@ The Play Ebean plugin supports several different versions of Play and Ebean.
 
 | Plugin version | Play version | Ebean version |
 |----------------|--------------|---------------|
+| 6.1.0          | 2.8.x        | 12.8.1        |
 | 6.0.0          | 2.8.1        | 11.45.1       |
 | 5.0.2          | 2.7.0        | 11.39.x       |
 | 5.0.1          | 2.7.0        | 11.32.x       |
@@ -35,4 +36,4 @@ The Play Ebean support library is *[Community Driven][]*.
 
 We also recommend using the payintech fork: https://github.com/payintech/play-ebean
 
-[Community Driven]: https://developer.lightbend.com/docs/lightbend-platform/introduction/getting-help/support-terminology.html#community-driven
+[Community Driven]: https://developer.lightbend.com/docs/introduction/getting-help/support-terminology.html
